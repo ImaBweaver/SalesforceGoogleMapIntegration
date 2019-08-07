@@ -1,0 +1,35 @@
+({    
+    init: function (cmp, event, helper) {
+    
+    	var action = cmp.get("c.getLocationList");
+        action.setParams({recordId : cmp.get("v.recordId")});
+    	action.setCallback(this, function(response) {
+            var state = response.getState();
+            if (state === "SUCCESS"){
+                var mapMarkers = response.getReturnValue();
+                console.log(mapMarkers);
+              	cmp.set('v.ReadytoLoad', "true");
+                cmp.set('v.mapMarkers',mapMarkers);
+                cmp.set('v.zoomLevel','16');
+
+        	}
+        });
+        $A.enqueueAction(action);        
+        
+        
+    },
+    
+    checkboxChange: function(cmp, event, helper) {
+        var action = cmp.get("c.mobilizationcheckbox");
+        action.setParams({recordId : cmp.get("v.recordId")});
+        action.setCallback(this, function(response) {
+        	if(state === "SUCCESS"){
+                var response = response.getReturnValue();
+                console.log(response);
+            }
+            });
+      $A.enqueueAction(action);
+        
+    }
+                     
+});
