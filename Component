@@ -1,0 +1,29 @@
+<aura:component implements="flexipage:availableForAllPageTypes,force:hasRecordId" access="global" controller="GoogleMapsController">
+ <!-- attributes -->
+    <aura:attribute name="mapMarkers" type="Object"/>
+    <aura:attribute name="zoomLevel" type="Integer" />
+    <aura:attribute name="ReadytoLoad" type="Boolean" default="false"/>
+    <aura:attribute name="ChargeMob" type="Boolean" default="true"/>
+
+    <!-- handlers-->
+    <aura:handler name="init" value="{! this }" action="{! c.init }"/>
+
+    <!-- the map component -->
+    <aura:if isTrue="{!v.ReadytoLoad}">
+    <div class="slds-card">
+    <div class="slds-card__body slds-card__body_inner slds-p-top_small">
+    <div class="dark-background">
+    <lightning:icon iconName="utility:image" alternativeText="Utility image" size="small"/> &nbsp; Maps
+    </div>
+    <lightning:map
+        class="mapTypeId: 'satellite'"
+        mapMarkers="{! v.mapMarkers }"
+        zoomLevel="{! v.zoomLevel }">
+        </lightning:map><br/>
+     <lightning:input type="checkbox" label="Charge Mobilization" name="ScreenMobCheckbox" onChange="{!c.checkboxChange}" checked= "{!v.ChargeMob}" /> 
+    </div></div>
+       
+        
+    </aura:if>
+    
+</aura:component>
