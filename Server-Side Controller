@@ -1,0 +1,254 @@
+public class GoogleMapsController {
+
+    @AuraEnabled
+    public static List<Location> getLocationList(String recordId)  {
+        List<Opportunity> opps = [Select Id, Site_Address_Line_1__c, City__c, State__c, Zip_Code__c, Site_Name__c FROM Opportunity WHERE Id =: recordId];
+        List<Location> loc = new List<Location>();
+        List<Decimal> siteDetails = new List<Decimal>();
+        List<Sites__c> siteRecords = new List<Sites__c>();
+        Boolean newCoordinates = false;
+        for(Opportunity opp :opps){
+            String SiteInfo = String.ValueOf([SELECT Name, Distance_from_Office__c, Travel_Time_from_Office_Mins__c FROM Sites__c WHERE Id =: opp.Site_Name__c]);  
+            String SiteName = SiteInfo.substringBetween('=', ',');
+			system.debug(SiteName);
+            String distanceFromOffice = '';
+            String travelTime = '';
+           
+            if((SiteInfo.contains('Distance_from_Office__c') == true) && (SiteInfo.contains('Travel_Time_from_Office_Mins__c') == true)){
+              distanceFromOffice = SiteInfo.substringAfter('Distance_from_Office__c=');
+              distanceFromOffice = distanceFromOffice.substringBefore(', Travel_Time_from_Office_Mins__c');
+              System.debug(distanceFromOffice);
+                
+              travelTime = SiteInfo.substringAfter('Travel_Time_from_Office_Mins__c=');
+              travelTime = travelTime.substringBefore(', Id=');
+              System.debug(travelTime);           
+        	}
+            
+            else{
+            	System.debug('Missing Parameters');
+                String sitelat = String.ValueOf(Database.query('Select Geo_Location__latitude__s From Sites__c Where Name =: SiteName'));
+                sitelat = sitelat.substringBetween('=', ',');
+                System.debug(sitelat);
+                String sitelong = String.ValueOf(Database.query('Select Geo_Location__longitude__s From Sites__c Where Name =: SiteName'));
+                String siteId = sitelong.substringBetween('Id=', '}');
+                sitelong = sitelong.substringBetween('=', ',');
+                System.debug(sitelong);
+                
+                siteRecords = [SELECT Id FROM Sites__c WHERE Id =: siteId];
+                
+                if(sitelat == null && sitelong == null){
+                    system.debug('Missing coordinates');
+                    List<Double> GeoCoordinates = new List<Double>();
+                    GeoCoordinates = getSiteCoordinates(siteId);
+                    sitelat = String.valueOf(GeoCoordinates[0]);
+                    sitelong = String.valueOf(GeoCoordinates[1]);
+                    
+                    siteRecords = [SELECT Id FROM Sites__c WHERE Id =: siteId];
+
+					for (Sites__C siteRecord : siteRecords)
+                    {
+                        siteRecord.Geo_Location__latitude__s = GeoCoordinates[0];
+                        siteRecord.Geo_Location__longitude__s = GeoCoordinates[1];
+                    }
+                    newCoordinates = true;
+                    
+                }
+                          
+                siteDetails = getPiklistValues(sitelat, sitelong);              
+                                
+                system.debug(siteDetails);
+                
+                for (Sites__C siteRecord : siteRecords)
+                    {
+                        siteRecord.Distance_from_Office__c = siteDetails[0];
+                        siteRecord.Travel_Time_from_Office_Mins__c = siteDetails[1];
+                    }
+                    update siteRecords;
+                                
+                distanceFromOffice = String.valueOf(siteDetails[0]);
+                travelTime = String.valueOf(siteDetails[1]);
+            }
+            
+            Integer intDistFromOffice = Integer.valueOf(Double.valueOf(distanceFromOffice));
+            
+            GeoLocation geoInfo = new GeoLocation();
+            geoInfo.Street = opp.Site_Address_Line_1__c;
+            geoInfo.PostalCode = opp.Zip_Code__c;
+            geoInfo.City = opp.City__c;
+            geoInfo.State = opp.State__c;
+            Location LocDetail = new Location();
+            locDetail.Location = geoInfo;
+            locDetail.title = SiteName;
+            
+            Decimal decTravelTime = Decimal.valueOf(travelTime);
+            
+            if(decTravelTime>=60){
+               Integer intTravelTime = Integer.valueOf(travelTime);
+               Integer divisor = 60;
+               Integer hours = intTravelTime/divisor;
+               Integer minutes = math.mod(intTravelTime, divisor);
+               locDetail.description = '<hr/>Distance from Office: ' + '<b>' + intDistFromOffice + ' mi</b>' + '<br/>' + 'Travel Time: ' + '<b>' + hours + ' hours ' + minutes + ' min</b>'; 
+            }
+            
+            else{
+                locDetail.description = '<hr/>Distance from Office: ' + '<b>' + intDistFromOffice + ' mi</b>' + '<br/>' + 'Travel Time: ' + '<b>' + travelTime + ' min</b>';
+            }
+                        
+            loc.add(locDetail);
+        }
+        
+        if(newCoordinates == true){
+            update siteRecords;
+        }               
+        return loc;
+    }
+    
+	public class Location{
+        @AuraEnabled 
+        public String icon{get;set;} 
+        @AuraEnabled 
+        public String title{get;set;} 
+        @AuraEnabled
+        public String description{get;set;} 
+        @AuraEnabled 
+        public GeoLocation location{get;set;} 
+    }
+    public class GeoLocation{
+        @AuraEnabled 
+        public String Street{get;set;}
+        @AuraEnabled 
+        public String PostalCode{get;set;}
+        @AuraEnabled 
+        public String City{get;set;}
+        @AuraEnabled 
+        public String State{get;set;}
+    }
+    
+     @AuraEnabled
+     public static List <Decimal> getPiklistValues( String DestLat, String DestLong ){
+     HttpRequest req = new HttpRequest();
+     req.setEndpoint('https://maps.googleapis.com/maps/api/directions/json?origin='
+     + '39.880637,-75.511186' + //Latitude and Longitude of the Office
+     '&destination=' +
+     DestLat + ',' + DestLong +  //Latitude and Longitude of the Site
+     '&key=AIzaSyCkaM4OPJyUJXhB9T_d-u7OVSxddbEW_e8');
+     req.setMethod('GET');
+     
+         
+     Http http = new Http();
+     HTTPResponse response = http.send(req);
+     System.debug(response.getBody());
+	 String JSONResponse = response.getBody();
+	 System.debug(JSONResponse);
+	 String DistanceString = JSONResponse.substringAfter('"text" : "');
+	 DistanceString = DistanceString.substringBefore(' mi');
+     DistanceString = DistanceString.remove(',');
+	 System.debug(DistanceString);
+	 Decimal Distance = decimal.valueOf(DistanceString);
+
+	 String TimeString = JSONResponse.substringAfter('"duration" :');
+         
+         
+	 TimeString = Timestring.substringAfter('"text" : "');
+	 TimeString = Timestring.substringBefore(' mins');
+     Decimal TravelTime = 0.0;
+     System.debug(TimeString);
+         if(TimeString.contains('hours') == true){
+             Decimal hours = decimal.valueOf(TimeString.substringBefore(' hours'));
+             Decimal minutes = decimal.valueOf(TimeString.substringAfter('hours '));
+             TravelTime = 60*hours + minutes;         
+         }
+         
+         else{
+             TravelTime = decimal.valueOf(TimeString);
+         }
+         
+	 
+
+	 System.debug('Distance Decimal: ' + Distance + ' Time Decimal: ' + TravelTime);
+         
+     List<Decimal> returnList = new List<Decimal>();
+     
+     returnList.add(Distance);
+     returnList.add(TravelTime);
+         
+     return returnList;
+    
+ }
+    
+    @AuraEnabled
+    public static List<Double> getSiteCoordinates(String recordId) {
+        
+    System.debug(recordId);
+    String SiteInfo = String.ValueOf([SELECT Site_Street_Address__c, Site_City__c, Site_State__c, Site_Zip_Code__c FROM Sites__c WHERE Id =: recordId]);
+    System.debug(SiteInfo);
+	String streetAddress = SiteInfo.substringBetween('Site_Street_Address__c=',', Site_City__c=');
+	streetAddress = streetAddress.replace(' ','_');
+	System.debug(streetAddress);
+	String siteCity = SiteInfo.substringBetween('Site_City__c=',', Site_State__c=');
+	siteCity = siteCity.replace(' ','_');
+	System.debug(siteCity);
+	String siteState = SiteInfo.substringBetween('Site_State__c=',', Site_Zip_Code__c=');
+	siteState = siteState.replace(' ','_');
+	System.debug(siteState);
+	String siteZip = SiteInfo.substringBetween('Site_Zip_Code__c=',', Id=');
+	siteZip = siteZip.replace(' ','_');
+	System.debug(siteZip);
+	
+    List<Double> siteDetails = new List<Double>();
+    System.debug(siteDetails);
+    siteDetails = getsecondPiklistValues( streetAddress, siteCity, siteState, siteZip );
+	
+    return siteDetails;
+        
+    }
+    
+    @AuraEnabled
+    public static List <Double> getsecondPiklistValues( String streetAddress, String siteCity, String siteState, String siteZip ){
+        
+    HttpRequest req = new HttpRequest();
+	req.setEndpoint('https://maps.googleapis.com/maps/api/geocode/json?address='+                  
+                    streetAddress+'_'+
+                    siteCity+'_'+
+                    siteState+'_'+
+                    siteZip+'_'+
+                    '&key=AIzaSyCkaM4OPJyUJXhB9T_d-u7OVSxddbEW_e8');
+
+    req.setMethod('GET');         
+    Http http = new Http();
+    HTTPResponse response = http.send(req);
+	String JSONResponse = response.getBody();
+	System.debug(JSONResponse);
+	String lat = JSONResponse.substringBetween('lat" : ',',');
+	System.debug(lat);
+	String lng = JSONResponse.substringBetween('lng" : ', '}');
+	System.debug(lng);
+
+	Double decLat = Double.valueOf(lat);
+	Double decLng = Double.valueOf(lng);
+        
+    List<Double> returnList = new List<Double>();
+    returnList.add(decLat);
+    returnList.add(decLng);
+    System.debug(returnList);    
+        
+    return returnList;
+        
+    }
+    
+    @AuraEnabled
+     public static void setMobilization(String recordId){
+        Opportunity currentOp = [SELECT Id, Mobilization__c FROM Opportunity WHERE Id =:recordId];
+        Boolean mob = currentOp.Mobilization__c;
+         
+         if(mob == true){
+             mob = False;
+         }
+         else{
+             mob = True;
+         }
+         
+        currentOp.Mobilization__c = mob;
+        Update currentOp;
+     }
+}
