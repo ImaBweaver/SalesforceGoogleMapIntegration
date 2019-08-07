@@ -1,0 +1,5 @@
+.THIS .dark-background{
+    padding-bottom: 15px;
+    font-size: 12pt;
+    font-weight: bold;
+}
