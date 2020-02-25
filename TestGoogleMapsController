@@ -1,0 +1,114 @@
+@isTest
+public class TestGoogleMapsController {   
+    @isTest static void getLocationList(){
+        
+        Sites__c testSite = new Sites__c();
+        testSite.Site_Street_Address__c='52 Commons Drive';
+        testSite.Site_City__c='Pottstown';
+        testSite.Site_State__c='PA';
+        testSite.Site_Zip_Code__c='19464';
+        testSite.Name='Test Site Home';
+        testSite.Distance_from_Office__c=41.8;
+        testSite.Travel_Time_from_Office_Mins__c=65;
+        insert testSite;
+                
+        Opportunity testopp = new Opportunity();
+        testopp.Name='Test Opportunity';
+        testopp.Site_Name__c=testSite.Id;
+        testopp.StageName='Needs Analysis';
+        testopp.CloseDate=date.today();
+        insert testopp;
+        
+        HttpMockFactory mock = new HttpMockFactory(200, 'OK', '"location" : {"lat" : 40.24325530000001,"lng" : -75.5915765},', new Map<String,String>());
+    	Test.setMock(HttpCalloutMock.class, mock);
+        
+        Test.startTest();
+        GoogleMapsController.getLocationList(testopp.Id);
+        GoogleMapsController.getSiteCoordinates(testSite.Id);
+        Test.stopTest();
+        
+    }
+    
+        @isTest static void getLocationListMissingParameters(){
+        
+        Sites__c testSite = new Sites__c();
+        testSite.Site_Street_Address__c='52 Commons Drive';
+        testSite.Site_City__c='Pottstown';
+        testSite.Site_State__c='PA';
+        testSite.Site_Zip_Code__c='19464';
+        testSite.Name='Test Site Home';
+        testSite.Geo_Location__latitude__s=40.24325530000001;
+        testSite.Geo_Location__Longitude__s=-75.5915765;
+        insert testSite;
+                
+        Opportunity testopp = new Opportunity();
+        testopp.Name='Test Opportunity';
+        testopp.Site_Name__c=testSite.Id;
+        testopp.StageName='Needs Analysis';
+        testopp.CloseDate=date.today();
+        insert testopp;
+        
+        HttpMockFactory mock = new HttpMockFactory(200, 'OK', '"distance" : {"text" : "41.8 mi","value" : 67324},"duration" : {"text" : "50 mins","value" : 3017},', new Map<String,String>());
+    	Test.setMock(HttpCalloutMock.class, mock);    
+            
+        Test.startTest();
+        GoogleMapsController.getLocationList(testopp.Id);
+        Test.stopTest();
+        
+    }
+    
+            @isTest static void getLocationListMissingCoordinates(){
+        
+        Sites__c testSite = new Sites__c();
+        testSite.Site_Street_Address__c='52 Commons Drive';
+        testSite.Site_City__c='Pottstown';
+        testSite.Site_State__c='PA';
+        testSite.Site_Zip_Code__c='19464';
+        testSite.Name='Test Site Home';
+        insert testSite;
+                
+        Opportunity testopp = new Opportunity();
+        testopp.Name='Test Opportunity';
+        testopp.Site_Name__c=testSite.Id;
+        testopp.StageName='Needs Analysis';
+        testopp.CloseDate=date.today();
+        insert testopp;
+        
+        HttpMockFactory mock = new HttpMockFactory(200, 'OK', '"location" : {"lat" : 40.24325530000001,"lng" : -75.5915765},"distance" : {"text" : "41.8 mi","value" : 67324},"duration" : {"text" : "1 hours 27 mins","value" : 3017},', new Map<String,String>());
+    	Test.setMock(HttpCalloutMock.class, mock);
+                
+        Test.startTest();
+        GoogleMapsController.getLocationList(testopp.Id);
+        Test.stopTest();
+        
+    }
+    
+    @isTest static void getLocationListDistanceSub60min(){
+        
+        Sites__c testSite = new Sites__c();
+        testSite.Site_Street_Address__c='52 Commons Drive';
+        testSite.Site_City__c='Pottstown';
+        testSite.Site_State__c='PA';
+        testSite.Site_Zip_Code__c='19464';
+        testSite.Name='Test Site Home';
+        testSite.Distance_from_Office__c=41.8;
+        testSite.Travel_Time_from_Office_Mins__c=55;
+        insert testSite;
+                
+        Opportunity testopp = new Opportunity();
+        testopp.Name='Test Opportunity';
+        testopp.Site_Name__c=testSite.Id;
+        testopp.StageName='Needs Analysis';
+        testopp.CloseDate=date.today();
+        insert testopp;
+        
+        HttpMockFactory mock = new HttpMockFactory(200, 'OK', '"location" : {"lat" : 40.24325530000001,"lng" : -75.5915765},"distance" : {"text" : "41.8 mi","value" : 67324},"duration" : {"text" : "50 mins","value" : 3017},', new Map<String,String>());
+    	Test.setMock(HttpCalloutMock.class, mock);
+        
+        Test.startTest();
+        GoogleMapsController.getLocationList(testopp.Id);
+        GoogleMapsController.getSiteCoordinates(testSite.Id);
+        Test.stopTest();
+        
+    }
+}
