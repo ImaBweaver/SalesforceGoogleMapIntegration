@@ -15,6 +15,8 @@ Style - sets style elements that can be used by the component to add different f
 
 Server-Side Controller - Performs most of the operative heavy lifting. It gets values from the client-side controller, does the operation, and returns the value. There are multiple functions in this server-side controller that do different things.
 
+TestGoogleMapsController - Test class written that provides 100% code coverage (needed for change set from sandbox to production)
+
 Anyway, feel free to tool around and make any updates you need to.
 
 Thanks,
