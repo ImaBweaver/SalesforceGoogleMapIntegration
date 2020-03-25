@@ -5,27 +5,27 @@ public class GoogleMapsController {
         List<Opportunity> opps = [Select Id, Site_Address_Line_1__c, City__c, State__c, Zip_Code__c, Site_Name__c FROM Opportunity WHERE Id =: recordId];
         List<Location> loc = new List<Location>();
         List<Decimal> siteDetails = new List<Decimal>();
+        List<Decimal> siteDetails2 = new List<Decimal>();
+        List<Decimal> siteDetails3 = new List<Decimal>();
         List<Sites__c> siteRecords = new List<Sites__c>();
         Boolean newCoordinates = false;
         for(Opportunity opp :opps){
             String SiteInfo = String.ValueOf([SELECT Name, Distance_from_Office__c, Travel_Time_from_Office_Mins__c FROM Sites__c WHERE Id =: opp.Site_Name__c]);  
             String SiteName = SiteInfo.substringBetween('=', ',');
 			system.debug(SiteName);
-            String distanceFromOffice = '';
+            String distanceFromTech = '';
             String travelTime = '';
+            String origlat1 = '';
+            String origlong1 = '';
+            String distanceFromTech2 = '';
+            String travelTime2 = '';
+            String origlat2 = '';
+            String origlong2 = '';
+            String distanceFromTech3 = '';
+            String travelTime3 = '';
+            String origlat3 = '';
+            String origlong3 = '';
            
-            if((SiteInfo.contains('Distance_from_Office__c') == true) && (SiteInfo.contains('Travel_Time_from_Office_Mins__c') == true)){
-              distanceFromOffice = SiteInfo.substringAfter('Distance_from_Office__c=');
-              distanceFromOffice = distanceFromOffice.substringBefore(', Travel_Time_from_Office_Mins__c');
-              System.debug(distanceFromOffice);
-                
-              travelTime = SiteInfo.substringAfter('Travel_Time_from_Office_Mins__c=');
-              travelTime = travelTime.substringBefore(', Id=');
-              System.debug(travelTime);           
-        	}
-            
-            else{
-            	System.debug('Missing Parameters');
                 String sitelat = String.ValueOf(Database.query('Select Geo_Location__latitude__s From Sites__c Where Name =: SiteName'));
                 sitelat = sitelat.substringBetween('=', ',');
                 System.debug(sitelat);
@@ -51,25 +51,96 @@ public class GoogleMapsController {
                         siteRecord.Geo_Location__longitude__s = GeoCoordinates[1];
                     }
                     newCoordinates = true;
-                    
-                }
-                          
-                siteDetails = getPiklistValues(sitelat, sitelong);              
-                                
-                system.debug(siteDetails);
-                
-                for (Sites__C siteRecord : siteRecords)
-                    {
-                        siteRecord.Distance_from_Office__c = siteDetails[0];
-                        siteRecord.Travel_Time_from_Office_Mins__c = siteDetails[1];
-                    }
-                    update siteRecords;
-                                
-                distanceFromOffice = String.valueOf(siteDetails[0]);
-                travelTime = String.valueOf(siteDetails[1]);
-            }
+                                         
+                }           	
             
-            Integer intDistFromOffice = Integer.valueOf(Double.valueOf(distanceFromOffice));
+            	List<Contact> Techs = [Select Id, MailingLatitude, MailingLongitude, MailingStreet, MailingCity, MailingState, MailingPostalCode FROM Contact WHERE Technician__c = TRUE AND ML_Employee__c = TRUE];
+            	System.debug(Techs);
+            	String nearestTech = '';
+            	String techTitle = '';
+            	Double Distance1 = 1000000000;
+            	Double Distance2 = 1000000001;
+           		Double Distance3 = 1000000002;
+            	String Tech1Id = '';
+            	GeoLocation geoInfo2 = new GeoLocation(); //Nearest Technician
+            	Location LocDetail2 = new Location();
+            	String Tech2Id = '';
+            	GeoLocation geoInfo3 = new GeoLocation(); //Second Nearest Technician
+            	Location LocDetail3 = new Location();
+            	String Tech3Id = '';
+            	GeoLocation geoInfo4 = new GeoLocation(); //Third Nearest Technician
+            	Location LocDetail4 = new Location();
+            
+            	for(Contact Tech :Techs){
+                    Decimal decSiteLat = decimal.valueOf(sitelat);
+                    Decimal decSiteLong = decimal.valueOf(sitelong);
+					Double radius = 6371.00;
+    				Double dLat = toRadians(decSiteLat-Tech.MailingLatitude);
+    				Double dLon = toRadians(decSiteLong-Tech.MailingLongitude);
+    				Double a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(toRadians(Tech.MailingLatitude)) * Math.cos(toRadians(decSiteLat)) * Math.sin(dLon/2) * Math.sin(dLon/2);
+   					Double c = 2 * Math.asin(Math.sqrt(a));
+
+   				 	double kmToMiles = 0.621371;
+     				radius = radius * c * kmToMiles;
+                    
+                    if (radius <= Distance1){
+                        Distance3 = Distance2;
+                        Distance2 = Distance1;
+                        Distance1 = radius;
+                        origlat3 = origlat2;
+                        origlong3 = origlong2;
+                        origlat2 = origlat1;
+                        origlong2 = origlong1;
+                        origlat1 = string.valueOf(Tech.MailingLatitude);
+                        origlong1 = string.valueOf(Tech.MailingLongitude);
+                        Tech3Id=Tech2Id;
+                        Tech2Id=Tech1Id;
+                        Tech1Id=Tech.Id;      
+                    }
+                    
+                    if (radius <= Distance2 && radius > Distance1){
+                        Distance3 = Distance2;
+                        Distance2 = radius;
+                        origlat3 = origlat2;
+                        origlong3 = origlong2;
+                        origlat2 = string.valueOf(Tech.MailingLatitude);
+                        origlong2 = string.valueOf(Tech.MailingLongitude);
+                        Tech3Id=Tech2Id;
+                        Tech2Id=Tech.Id;                                                                                                         
+                    }
+                    
+                    if (radius <= Distance3 && radius > Distance1 && radius > Distance2){
+                        Distance3 = radius;
+                        origlat3 = string.valueOf(Tech.MailingLatitude);
+                        origlong3 = string.valueOf(Tech.MailingLongitude);
+                        Tech3Id=Tech.Id;                       
+                    }                    
+                }
+            
+            	system.debug('origlat1: ' + origlat1 + ' | origlong1: ' + origlong1);
+                siteDetails = getPiklistValues(origlat1, origlong1, sitelat, sitelong);
+            	system.debug('origlat2: ' + origlat2 + ' | origlong2: ' + origlong2);
+            	siteDetails2 = getPiklistValues(origlat2, origlong2, sitelat, sitelong);
+            	system.debug('origlat3: ' + origlat3 + ' | origlong3: ' + origlong3);
+            	siteDetails3 = getPiklistValues(origlat3, origlong3, sitelat, sitelong); 
+                                
+                system.debug('Site Details: ' + siteDetails);
+            	system.debug('Site Details2: ' + siteDetails2);
+            	system.debug('Site Details3: ' + siteDetails3);
+                                
+                distanceFromTech = String.valueOf(siteDetails[0]);
+                travelTime = String.valueOf(siteDetails[1]);
+            
+            	distanceFromTech2 = String.valueOf(siteDetails2[0]);
+                travelTime2 = String.valueOf(siteDetails2[1]);
+            
+            	distanceFromTech3 = String.valueOf(siteDetails3[0]);
+                travelTime3 = String.valueOf(siteDetails3[1]);
+            
+            
+            Integer intDistFromOffice = Integer.valueOf(Double.valueOf(distanceFromTech));
+            Integer intDistFromOffice2 = Integer.valueOf(Double.valueOf(distanceFromTech2));
+            Integer intDistFromOffice3 = Integer.valueOf(Double.valueOf(distanceFromTech3));
             
             GeoLocation geoInfo = new GeoLocation();
             geoInfo.Street = opp.Site_Address_Line_1__c;
@@ -81,25 +152,99 @@ public class GoogleMapsController {
             locDetail.title = SiteName;
             
             Decimal decTravelTime = Decimal.valueOf(travelTime);
+            Decimal decTravelTime2 = Decimal.valueOf(travelTime2);
+            Decimal decTravelTime3 = Decimal.valueOf(travelTime3);
+            
+            system.debug('Tech1Id: ' + Tech1Id);
+            
+            Contact Tech1 = [Select Full_Name__c, Title, Market__c, MailingStreet, MailingCity, MailingState, MailingPostalCode FROM Contact WHERE Id =: Tech1Id LIMIT 1];
             
             if(decTravelTime>=60){
                Integer intTravelTime = Integer.valueOf(travelTime);
                Integer divisor = 60;
                Integer hours = intTravelTime/divisor;
                Integer minutes = math.mod(intTravelTime, divisor);
-               locDetail.description = '<hr/>Distance from Office: ' + '<b>' + intDistFromOffice + ' mi</b>' + '<br/>' + 'Travel Time: ' + '<b>' + hours + ' hours ' + minutes + ' min</b>'; 
+               locDetail.description = '<hr/>Nearest Tech: ' + Tech1.Full_Name__c+ '<br/>Distance Away ' + '<b>' + intDistFromOffice + ' mi</b>' + '<br/>' + 'Travel Time: ' + '<b>' + hours + ' hours ' + minutes + ' min</b>'; 
             }
             
             else{
-                locDetail.description = '<hr/>Distance from Office: ' + '<b>' + intDistFromOffice + ' mi</b>' + '<br/>' + 'Travel Time: ' + '<b>' + travelTime + ' min</b>';
+                locDetail.description = '<hr/>Nearest Tech: ' + Tech1.Full_Name__c + '<br/>Distance Away: ' + '<b>' + intDistFromOffice + ' mi</b>' + '<br/>' + 'Travel Time: ' + '<b>' + travelTime + ' min</b>';
             }
                         
             loc.add(locDetail);
+            
+            if(Tech1Id != ''){           
+            	geoInfo2.Street = Tech1.MailingStreet;
+            	geoInfo2.PostalCode = Tech1.MailingPostalCode;
+            	geoInfo2.City = Tech1.MailingCity;
+            	geoInfo2.State = Tech1.MailingState;
+            	locDetail2.Location = geoInfo2;
+            	locDetail2.title = Tech1.Full_Name__c;
+                if(decTravelTime>=60){
+                    Integer intTravelTime1 = Integer.valueOf(travelTime);
+                    Integer divisor1 = 60;
+                    Integer hours1 = intTravelTime1/divisor1;
+                    Integer minutes1 = math.mod(intTravelTime1, divisor1);
+                    locDetail2.description = '<hr/>Title: '+ '<b>' +Tech1.Title + '</b>' + '<br/>Market: '+ Tech1.Market__c + '<br/>Distance to Site: ' + intDistFromOffice + ' mi' + '<br/>Travel Time: ' + hours1 + ' hours ' + minutes1 + ' min';
+                }
+                else{
+                    locDetail2.description = '<hr/>Title: '+ '<b>' +Tech1.Title + '</b>' + '<br/>Market: '+ Tech1.Market__c  + '<br/>Distance to Site: ' + intDistFromOffice + ' mi' + '<br/>Travel Time: ' + travelTime + ' min';    
+                }
+             
+             loc.add(locDetail2);  
+            }
+            
+            if(Tech2Id != ''){
+              Contact Tech2 = [Select Full_Name__c, Title, Market__c, MailingStreet, MailingCity, MailingState, MailingPostalCode FROM Contact WHERE Id =: Tech2Id LIMIT 1];
+                
+                geoInfo3.Street = Tech2.MailingStreet;
+            	geoInfo3.PostalCode = Tech2.MailingPostalCode;
+            	geoInfo3.City = Tech2.MailingCity;
+            	geoInfo3.State = Tech2.MailingState;
+            	locDetail3.Location = geoInfo3;
+            	locDetail3.title = Tech2.Full_Name__c;
+                if(decTravelTime2>=60){
+                    Integer intTravelTime2 = Integer.valueOf(travelTime2);
+                    Integer divisor2 = 60;
+                    Integer hours2 = intTravelTime2/divisor2;
+                    Integer minutes2 = math.mod(intTravelTime2, divisor2);
+                    locDetail3.description = '<hr/>Title: '+ '<b>' +Tech2.Title + '</b>' + '<br/>Market: '+  Tech2.Market__c +  '<br/>Distance to Site: ' + intDistFromOffice2 + ' mi' + '<br/>Travel Time: ' + hours2 + ' hours ' + minutes2 + ' min';
+                }
+                else{
+                    locDetail3.description = '<hr/>Title: '+ '<b>' +Tech2.Title + '</b>' + '<br/>Market: '+ Tech2.Market__c +  '<br/>Distance to Site: ' + intDistFromOffice2 + ' mi' + '<br/>Travel Time: ' + travelTime2 + ' min';    
+                }
+                
+              loc.add(locDetail3);  
+            }
+            
+            if(Tech3Id != ''){
+              Contact Tech3 = [Select Full_Name__c, Title, Market__c, MailingStreet, MailingCity, MailingState, MailingPostalCode FROM Contact WHERE Id =: Tech3Id LIMIT 1];
+                
+                geoInfo4.Street = Tech3.MailingStreet;
+            	geoInfo4.PostalCode = Tech3.MailingPostalCode;
+            	geoInfo4.City = Tech3.MailingCity;
+            	geoInfo4.State = Tech3.MailingState;
+            	locDetail4.Location = geoInfo4;
+            	locDetail4.title = Tech3.Full_Name__c;
+                if(decTravelTime3>=60){
+                    Integer intTravelTime3 = Integer.valueOf(travelTime3);
+                    Integer divisor3 = 60;
+                    Integer hours3 = intTravelTime3/divisor3;
+                    Integer minutes3 = math.mod(intTravelTime3, divisor3);
+                    locDetail4.description = '<hr/>Title: '+ '<b>' +Tech3.Title + '</b>' + '<br/>Market: ' + Tech3.Market__c + '<br/>Distance to Site: ' + intDistFromOffice3 + ' mi' + '<br/>Travel Time: ' + hours3 + ' hours ' + minutes3 + ' min';
+                }
+                else{
+                    locDetail4.description = '<hr/>Title: '+ '<b>' +Tech3.Title + '</b>' + '<br/>Market: ' + Tech3.Market__c + '<br/>Distance to Site: ' + intDistFromOffice3 + ' mi' + '<br/>Travel Time: ' + travelTime3 + ' min';    
+                }
+                
+              loc.add(locDetail4); 
+            }
         }
+         
+       if(newCoordinates == true){
+            			update siteRecords;
+       }   
         
-        if(newCoordinates == true){
-            update siteRecords;
-        }               
         return loc;
     }
     
@@ -125,10 +270,10 @@ public class GoogleMapsController {
     }
     
      @AuraEnabled
-     public static List <Decimal> getPiklistValues( String DestLat, String DestLong ){
+     public static List <Decimal> getPiklistValues( String origlat, String origlong, String DestLat, String DestLong ){
      HttpRequest req = new HttpRequest();
      req.setEndpoint('https://maps.googleapis.com/maps/api/directions/json?origin='
-     + '39.880637,-75.511186' + //Latitude and Longitude of the Office
+     + origlat + ',' + origlong +  //Latitude and Longitude of nearest Tech
      '&destination=' +
      DestLat + ',' + DestLong +  //Latitude and Longitude of the Site
      '&key=AIzaSyCkaM4OPJyUJXhB9T_d-u7OVSxddbEW_e8');
@@ -236,19 +381,7 @@ public class GoogleMapsController {
         
     }
     
-    @AuraEnabled
-     public static void setMobilization(String recordId){
-        Opportunity currentOp = [SELECT Id, Mobilization__c FROM Opportunity WHERE Id =:recordId];
-        Boolean mob = currentOp.Mobilization__c;
-         
-         if(mob == true){
-             mob = False;
-         }
-         else{
-             mob = True;
-         }
-         
-        currentOp.Mobilization__c = mob;
-        Update currentOp;
-     }
+    public static Double toRadians(Decimal degree){
+    	return degree * 3.1415926 / 180;
+	}
 }
