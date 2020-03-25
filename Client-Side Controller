@@ -9,26 +9,15 @@
                 var mapMarkers = response.getReturnValue();
                 console.log(mapMarkers);
               	cmp.set('v.ReadytoLoad', "true");
+                cmp.set('v.markersTitle', "Site and Nearest Technicians");
                 cmp.set('v.mapMarkers',mapMarkers);
                 cmp.set('v.zoomLevel','16');
+                cmp.set('v.center',mapMarkers[0]);
 
         	}
         });
         $A.enqueueAction(action);        
         
-        
-    },
-    
-    checkboxChange: function(cmp, event, helper) {
-        var action = cmp.get("c.mobilizationcheckbox");
-        action.setParams({recordId : cmp.get("v.recordId")});
-        action.setCallback(this, function(response) {
-        	if(state === "SUCCESS"){
-                var response = response.getReturnValue();
-                console.log(response);
-            }
-            });
-      $A.enqueueAction(action);
         
     }
                      
