@@ -2,7 +2,7 @@
 public class TestGoogleMapsController {   
     @isTest static void getLocationList(){
         
-        Sites__c testSite = new Sites__c();
+               Sites__c testSite = new Sites__c();
         testSite.Site_Street_Address__c='52 Commons Drive';
         testSite.Site_City__c='Pottstown';
         testSite.Site_State__c='PA';
@@ -10,6 +10,8 @@ public class TestGoogleMapsController {
         testSite.Name='Test Site Home';
         testSite.Distance_from_Office__c=41.8;
         testSite.Travel_Time_from_Office_Mins__c=65;
+		testSite.Geo_Location__Latitude__s =39.8807468;
+        testSite.Geo_Location__Longitude__s =-75.304666;
         insert testSite;
                 
         Opportunity testopp = new Opportunity();
@@ -19,7 +21,47 @@ public class TestGoogleMapsController {
         testopp.CloseDate=date.today();
         insert testopp;
         
-        HttpMockFactory mock = new HttpMockFactory(200, 'OK', '"location" : {"lat" : 40.24325530000001,"lng" : -75.5915765},', new Map<String,String>());
+        Account testacc = new Account();
+        testacc.Name = 'Master Locators';
+        testacc.Tier_Level__c = 'None';
+        insert testacc;
+        
+        
+        List<Contact> newcontacts = new List<Contact>();
+        
+        Contact contact1 = new Contact();
+        contact1.FirstName = 'Bob';
+        contact1.LastName = 'Short';
+        contact1.AccountId = testacc.Id;
+        contact1.Technician__c = TRUE;
+        contact1.ML_Employee__c = TRUE;
+        contact1.MailingLatitude=39.890902000000000;
+        contact1.MailingLongitude=-75.306840000000000;
+        newcontacts.add(contact1);
+        
+        Contact contact2 = new Contact();
+        contact2.FirstName = 'Todd';
+        contact2.LastName = 'Tall';
+        contact2.AccountId = testacc.Id;
+        contact2.Technician__c = TRUE;
+        contact2.ML_Employee__c = TRUE;
+        contact2.MailingLatitude=39.863715000000000;
+        contact2.MailingLongitude=-75.351962000000000;
+        newcontacts.add(contact2);
+        
+        Contact contact3 = new Contact();
+        contact3.FirstName = 'Brock';
+        contact3.LastName = 'Medium';
+        contact3.AccountId = testacc.Id;
+        contact3.Technician__c = TRUE;
+        contact3.ML_Employee__c = TRUE;
+        contact3.MailingLatitude=39.982377000000000;
+        contact3.MailingLongitude=-75.107901000000000;
+        newcontacts.add(contact3);
+        
+        insert newcontacts;
+        
+        HttpMockFactory mock = new HttpMockFactory(200, 'OK', '"location" : {"lat" : 39.982377000000000,"lng" : -75.107901000000000}, "distance" : {"text" : "16.7 mi","value" : 27235},"duration" : {"text" : "1 hours 58 mins","value" : 1250},', new Map<String,String>());
     	Test.setMock(HttpCalloutMock.class, mock);
         
         Test.startTest();
@@ -31,14 +73,16 @@ public class TestGoogleMapsController {
     
         @isTest static void getLocationListMissingParameters(){
         
-        Sites__c testSite = new Sites__c();
+         Sites__c testSite = new Sites__c();
         testSite.Site_Street_Address__c='52 Commons Drive';
         testSite.Site_City__c='Pottstown';
         testSite.Site_State__c='PA';
         testSite.Site_Zip_Code__c='19464';
         testSite.Name='Test Site Home';
-        testSite.Geo_Location__latitude__s=40.24325530000001;
-        testSite.Geo_Location__Longitude__s=-75.5915765;
+        testSite.Distance_from_Office__c=41.8;
+        testSite.Travel_Time_from_Office_Mins__c=65;
+        testSite.Geo_Location__Latitude__s =39.8807468;
+        testSite.Geo_Location__Longitude__s =-75.304666;
         insert testSite;
                 
         Opportunity testopp = new Opportunity();
@@ -48,8 +92,48 @@ public class TestGoogleMapsController {
         testopp.CloseDate=date.today();
         insert testopp;
         
-        HttpMockFactory mock = new HttpMockFactory(200, 'OK', '"distance" : {"text" : "41.8 mi","value" : 67324},"duration" : {"text" : "50 mins","value" : 3017},', new Map<String,String>());
-    	Test.setMock(HttpCalloutMock.class, mock);    
+        Account testacc = new Account();
+        testacc.Name = 'Master Locators';
+        testacc.Tier_Level__c = 'None';
+        insert testacc;
+        
+        
+        List<Contact> newcontacts = new List<Contact>();
+        
+        Contact contact1 = new Contact();
+        contact1.FirstName = 'Bob';
+        contact1.LastName = 'Short';
+        contact1.AccountId = testacc.Id;
+        contact1.Technician__c = TRUE;
+        contact1.ML_Employee__c = TRUE;
+        contact1.MailingLatitude=39.890902000000000;
+        contact1.MailingLongitude=-75.306840000000000;
+        newcontacts.add(contact1);
+        
+        Contact contact2 = new Contact();
+        contact2.FirstName = 'Todd';
+        contact2.LastName = 'Tall';
+        contact2.AccountId = testacc.Id;
+        contact2.Technician__c = TRUE;
+        contact2.ML_Employee__c = TRUE;
+        contact2.MailingLatitude=39.863715000000000;
+        contact2.MailingLongitude=-75.351962000000000;
+        newcontacts.add(contact2);
+        
+        Contact contact3 = new Contact();
+        contact3.FirstName = 'Brock';
+        contact3.LastName = 'Medium';
+        contact3.AccountId = testacc.Id;
+        contact3.Technician__c = TRUE;
+        contact3.ML_Employee__c = TRUE;
+        contact3.MailingLatitude=39.982377000000000;
+        contact3.MailingLongitude=-75.107901000000000;
+        newcontacts.add(contact3);
+        
+        insert newcontacts;
+        
+        HttpMockFactory mock = new HttpMockFactory(200, 'OK', '"location" : {"lat" : 39.982377000000000,"lng" : -75.107901000000000}, "distance" : {"text" : "16.7 mi","value" : 27235},"duration" : {"text" : "100 mins","value" : 1250},', new Map<String,String>());
+    	Test.setMock(HttpCalloutMock.class, mock);
             
         Test.startTest();
         GoogleMapsController.getLocationList(testopp.Id);
@@ -59,12 +143,16 @@ public class TestGoogleMapsController {
     
             @isTest static void getLocationListMissingCoordinates(){
         
-        Sites__c testSite = new Sites__c();
+         Sites__c testSite = new Sites__c();
         testSite.Site_Street_Address__c='52 Commons Drive';
         testSite.Site_City__c='Pottstown';
         testSite.Site_State__c='PA';
         testSite.Site_Zip_Code__c='19464';
         testSite.Name='Test Site Home';
+        testSite.Distance_from_Office__c=41.8;
+        testSite.Travel_Time_from_Office_Mins__c=65;
+        testSite.Geo_Location__Latitude__s =39.8807468;
+        testSite.Geo_Location__Longitude__s =-75.304666;
         insert testSite;
                 
         Opportunity testopp = new Opportunity();
@@ -74,7 +162,46 @@ public class TestGoogleMapsController {
         testopp.CloseDate=date.today();
         insert testopp;
         
-        HttpMockFactory mock = new HttpMockFactory(200, 'OK', '"location" : {"lat" : 40.24325530000001,"lng" : -75.5915765},"distance" : {"text" : "41.8 mi","value" : 67324},"duration" : {"text" : "1 hours 27 mins","value" : 3017},', new Map<String,String>());
+        Account testacc = new Account();
+        testacc.Name = 'Master Locators';
+        testacc.Tier_Level__c = 'None';
+        insert testacc;
+        
+        
+        List<Contact> newcontacts = new List<Contact>();
+        
+        Contact contact1 = new Contact();
+        contact1.FirstName = 'Bob';
+        contact1.LastName = 'Short';
+        contact1.AccountId = testacc.Id;
+        contact1.Technician__c = TRUE;
+        contact1.ML_Employee__c = TRUE;
+        contact1.MailingLatitude=39.890902000000000;
+        contact1.MailingLongitude=-75.306840000000000;
+        newcontacts.add(contact1);
+        
+        Contact contact2 = new Contact();
+        contact2.FirstName = 'Todd';
+        contact2.LastName = 'Tall';
+        contact2.AccountId = testacc.Id;
+        contact2.Technician__c = TRUE;
+        contact2.ML_Employee__c = TRUE;
+        contact2.MailingLatitude=39.863715000000000;
+        contact2.MailingLongitude=-75.351962000000000;
+        newcontacts.add(contact2);
+        
+        Contact contact3 = new Contact();
+        contact3.FirstName = 'Brock';
+        contact3.LastName = 'Medium';
+        contact3.AccountId = testacc.Id;
+        contact3.Technician__c = TRUE;
+        contact3.ML_Employee__c = TRUE;
+        contact3.MailingLatitude=39.982377000000000;
+        contact3.MailingLongitude=-75.107901000000000;
+        newcontacts.add(contact3);
+        
+        insert newcontacts;        
+        HttpMockFactory mock = new HttpMockFactory(200, 'OK', '"location" : {"lat" : 39.982377000000000,"lng" : -75.107901000000000}, "distance" : {"text" : "16.7 mi","value" : 27235},"duration" : {"text" : "100 mins","value" : 1250},', new Map<String,String>());
     	Test.setMock(HttpCalloutMock.class, mock);
                 
         Test.startTest();
@@ -92,7 +219,9 @@ public class TestGoogleMapsController {
         testSite.Site_Zip_Code__c='19464';
         testSite.Name='Test Site Home';
         testSite.Distance_from_Office__c=41.8;
-        testSite.Travel_Time_from_Office_Mins__c=55;
+        testSite.Travel_Time_from_Office_Mins__c=65;
+        testSite.Geo_Location__Latitude__s =39.8807468;
+        testSite.Geo_Location__Longitude__s =-75.304666;
         insert testSite;
                 
         Opportunity testopp = new Opportunity();
@@ -102,7 +231,47 @@ public class TestGoogleMapsController {
         testopp.CloseDate=date.today();
         insert testopp;
         
-        HttpMockFactory mock = new HttpMockFactory(200, 'OK', '"location" : {"lat" : 40.24325530000001,"lng" : -75.5915765},"distance" : {"text" : "41.8 mi","value" : 67324},"duration" : {"text" : "50 mins","value" : 3017},', new Map<String,String>());
+        Account testacc = new Account();
+        testacc.Name = 'Master Locators';
+        testacc.Tier_Level__c = 'None';
+        insert testacc;
+        
+        
+        List<Contact> newcontacts = new List<Contact>();
+        
+        Contact contact1 = new Contact();
+        contact1.FirstName = 'Bob';
+        contact1.LastName = 'Short';
+        contact1.AccountId = testacc.Id;
+        contact1.Technician__c = TRUE;
+        contact1.ML_Employee__c = TRUE;
+        contact1.MailingLatitude=39.890902000000000;
+        contact1.MailingLongitude=-75.306840000000000;
+        newcontacts.add(contact1);
+        
+        Contact contact2 = new Contact();
+        contact2.FirstName = 'Todd';
+        contact2.LastName = 'Tall';
+        contact2.AccountId = testacc.Id;
+        contact2.Technician__c = TRUE;
+        contact2.ML_Employee__c = TRUE;
+        contact2.MailingLatitude=39.863715000000000;
+        contact2.MailingLongitude=-75.351962000000000;
+        newcontacts.add(contact2);
+        
+        Contact contact3 = new Contact();
+        contact3.FirstName = 'Brock';
+        contact3.LastName = 'Medium';
+        contact3.AccountId = testacc.Id;
+        contact3.Technician__c = TRUE;
+        contact3.ML_Employee__c = TRUE;
+        contact3.MailingLatitude=39.982377000000000;
+        contact3.MailingLongitude=-75.107901000000000;
+        newcontacts.add(contact3);
+        
+        insert newcontacts;
+        
+        HttpMockFactory mock = new HttpMockFactory(200, 'OK', '"location" : {"lat" : 39.982377000000000,"lng" : -75.107901000000000}, "distance" : {"text" : "16.7 mi","value" : 27235},"duration" : {"text" : "56 mins","value" : 1250},', new Map<String,String>());
     	Test.setMock(HttpCalloutMock.class, mock);
         
         Test.startTest();
